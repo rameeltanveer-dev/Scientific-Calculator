@@ -155,7 +155,7 @@ function handleFunction(func) {
     waitingForSecondOperand = true; 
 }
 
-// --- EVENT HANDLER FOR BUTTON CLICKS ---
+// --- EVENT HANDLER ---
 
 keys.addEventListener('click', (event) => {
     const { target } = event;
@@ -164,80 +164,25 @@ keys.addEventListener('click', (event) => {
     }
 
     const value = target.value;
-    processInput(value, target.classList);
-});
 
-// --- NEW KEYBOARD EVENT HANDLER ---
-
-document.addEventListener('keydown', (event) => {
-    const key = event.key;
-    let mappedValue = null;
-    let classList = null;
-
-    // 1. Map Numbers and Decimal
-    if (key >= '0' && key <= '9') {
-        mappedValue = key;
-    } else if (key === '.') {
-        mappedValue = key;
-        classList = 'decimal';
-    } 
-    // 2. Map Operators
-    else if (key === '+') {
-        mappedValue = 'add';
-        classList = 'operator';
-    } else if (key === '-') {
-        mappedValue = 'subtract';
-        classList = 'operator';
-    } else if (key === '*' || key === 'x') {
-        mappedValue = 'multiply';
-        classList = 'operator';
-    } else if (key === '/') {
-        mappedValue = 'divide';
-        classList = 'operator';
-    }
-    // 3. Map Control Keys (Enter/Equals, Backspace, Escape/Clear)
-    else if (key === 'Enter' || key === '=') {
-        mappedValue = 'equals';
-        classList = 'operator';
-    } else if (key === 'Backspace') {
-        mappedValue = 'backspace';
-        classList = 'backspace';
-    } else if (key === 'Escape' || key === 'c' || key === 'C') {
-        // 'c' or 'C' for 'Clear' is common in calculators
-        mappedValue = 'clear';
-        classList = 'clear';
-    }
-    
-    // Prevent default actions for calculator keys (like scrolling on space/enter)
-    if (mappedValue) {
-        event.preventDefault();
-        // Use a generic classList if not specifically set, for processing
-        processInput(mappedValue, classList || '');
-    }
-});
-
-// --- CORE INPUT PROCESSING FUNCTION (Called by both click and keydown) ---
-
-function processInput(value, classList) {
-    if (value >= '0' && value <= '9') {
-        handleNumber(value);
-    } else if (classList.includes('operator') || value === 'equals') {
+    if (target.classList.contains('operator')) {
         handleOperator(value === '=' ? 'equals' : value);
-    } else if (classList.includes('function')) {
+    } else if (target.classList.contains('function')) {
         handleFunction(value);
-    } else if (classList.includes('clear') || value === 'clear') {
+    } else if (target.classList.contains('clear')) {
         handleClear();
-    } else if (classList.includes('backspace') || value === 'backspace') {
+    } else if (target.classList.contains('backspace')) {
         handleBackspace();
-    } else if (classList.includes('decimal') || value === '.') {
+    } else if (target.classList.contains('decimal')) {
         handleDecimal();
-    } else if (classList.includes('sign-change')) {
+    } else if (target.classList.contains('sign-change')) {
         handleSignChange();
+    } else if (value >= '0' && value <= '9') {
+        handleNumber(value);
     }
     
     updateDisplay();
-}
+});
 
 // Initialize display
 updateDisplay();
-  
