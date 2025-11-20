@@ -186,3 +186,46 @@ keys.addEventListener('click', (event) => {
 
 // Initialize display
 updateDisplay();
+
+// --- KEYBOARD SUPPORT ADDED HERE ---
+
+document.addEventListener('keydown', (event) => {
+    // Get the key pressed
+    const key = event.key;
+
+    // Check for number keys (0-9)
+    if (key >= '0' && key <= '9') {
+        handleNumber(key);
+    } 
+    // Check for operators (+, -, *, /)
+    else if (['+', '-', '*', '/'].includes(key)) {
+        // Map keyboard keys to internal operator names
+        let operatorKey;
+        if (key === '+') operatorKey = 'add';
+        else if (key === '-') operatorKey = 'subtract';
+        else if (key === '*') operatorKey = 'multiply';
+        else if (key === '/') operatorKey = 'divide';
+        
+        handleOperator(operatorKey);
+    } 
+    // Check for decimal
+    else if (key === '.') {
+        handleDecimal();
+    }
+    // Check for Enter or = for equals
+    else if (key === 'Enter' || key === '=') {
+        // Prevent 'Enter' from submitting a form
+        event.preventDefault(); 
+        handleOperator('equals');
+    }
+    // Check for Backspace 
+    else if (key === 'Backspace') {
+        handleBackspace();
+    }
+    // Check for 'c' or 'C' or 'Delete' for clear/reset
+    else if (key.toLowerCase() === 'c' || key === 'Delete') {
+        handleClear();
+    }
+    
+    updateDisplay();
+});
