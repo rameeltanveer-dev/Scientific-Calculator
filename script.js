@@ -1,0 +1,243 @@
+const display = document.getElementById('display');
+const keys = document.querySelector('.calculator-keys');
+
+let buffer = '0'; // Current number being entered
+let operator = null;
+let previousValue = 0; // The stored result or first operand
+let waitingForSecondOperand = false; // Flag to check if we are waiting for a new number
+
+// --- CORE FUNCTIONS ---
+
+function updateDisplay() {
+    // Limit to 15 digits for cleaner display, otherwise use exponential notation
+    if (buffer.length > 15 && parseFloat(buffer) > 999999999999999) {
+        display.value = parseFloat(buffer).toExponential(5);
+    } else {
+        display.value = buffer;
+    }
+}
+
+function handleNumber(value) {
+    if (waitingForSecondOperand === true) {
+        // If an operator was just pressed, start a new number
+        buffer = value;
+        waitingForSecondOperand = false;
+    } else {
+        // Continue building the current number
+        if (buffer === '0') {
+            buffer = value;
+        } else {
+            buffer += value;
+        }
+    }
+}
+
+function handleDecimal() {
+    if (waitingForSecondOperand === true) {
+        // If waiting for second operand, start with "0."
+        buffer = '0.';
+        waitingForSecondOperand = false;
+        return;
+    }
+    if (!buffer.includes('.')) {
+        buffer += '.';
+    }
+}
+
+function handleSignChange() {
+    buffer = String(parseFloat(buffer) * -1);
+}
+
+function handleBackspace() {
+    if (buffer === 'Error') {
+        handleClear();
+        return;
+    }
+    if (buffer.length === 1) {
+        buffer = '0';
+    } else {
+        buffer = buffer.substring(0, buffer.length - 1);
+    }
+}
+
+function handleClear() {
+    buffer = '0';
+    operator = null;
+    previousValue = 0;
+    waitingForSecondOperand = false;
+}
+
+// --- ARITHMETIC LOGIC (Real Time Calculation) ---
+
+function calculate(left, operation, right) {
+    left = parseFloat(left);
+    right = parseFloat(right);
+    
+    // Safety check for division by zero
+    if (operation === 'divide' && right === 0) return 'Error';
+
+    if (operation === 'add') return left + right;
+    if (operation === 'subtract') return left - right;
+    if (operation === 'multiply') return left * right;
+    if (operation === 'divide') return left / right;
+    
+    return right;
+}
+
+function handleOperator(nextOperator) {
+    const inputValue = parseFloat(buffer);
+
+    if (operator && waitingForSecondOperand) {
+        // If an operator was pressed twice (e.g., 5 + +), just change the operator
+        operator = nextOperator;
+        return;
+    }
+
+    if (previousValue === 0) {
+        // This is the first number in the calculation
+        previousValue = inputValue;
+    } else {
+        // This is the real-time calculation step!
+        const result = calculate(previousValue, operator, inputValue);
+
+        if (result === 'Error') {
+            buffer = 'Error';
+            handleClear(); // Reset after error
+            return;
+        }
+        
+        // Update previousValue with the result for the next operation
+        previousValue = result;
+        buffer = String(result); // Display the real-time result
+    }
+
+    // Set the new operator, but only if it's not the '=' sign
+    if (nextOperator !== 'equals') {
+        operator = nextOperator;
+        waitingForSecondOperand = true;
+    } else {
+        // Reset state after '='
+        operator = null;
+        waitingForSecondOperand = false;
+        previousValue = 0;
+    }
+}
+
+// --- SCIENTIFIC FUNCTIONS LOGIC ---
+
+function handleFunction(func) {
+    const value = parseFloat(buffer);
+    let result;
+    const rad = value * (Math.PI / 180); // Convert degrees to radians for sin/cos/tan
+
+    // Handle constants first
+    if (func === 'pi') result = Math.PI;
+    else if (func === 'e') result = Math.E;
+    
+    // Handle unary functions
+    else if (func === 'sin') result = Math.sin(rad);
+    else if (func === 'cos') result = Math.cos(rad);
+    else if (func === 'tan') result = Math.tan(rad);
+    else if (func === 'sqrt') result = Math.sqrt(value);
+    else if (func === 'log') result = Math.log10(value);
+    else if (func === 'power') result = Math.pow(value, 2);
+
+    // Check for domain errors (e.g., log of negative number)
+    if (isNaN(result) || result === Infinity || result === -Infinity) {
+        buffer = 'Error';
+        previousValue = 0;
+        operator = null;
+    } else {
+        buffer = String(result);
+    }
+    
+    // After a function, the result is displayed and we are ready for a new operation/number
+    waitingForSecondOperand = true; 
+}
+
+// --- EVENT HANDLER FOR BUTTON CLICKS ---
+
+keys.addEventListener('click', (event) => {
+    const { target } = event;
+    if (!target.matches('button')) {
+        return;
+    }
+
+    const value = target.value;
+    processInput(value, target.classList);
+});
+
+// --- NEW KEYBOARD EVENT HANDLER ---
+
+document.addEventListener('keydown', (event) => {
+    const key = event.key;
+    let mappedValue = null;
+    let classList = null;
+
+    // 1. Map Numbers and Decimal
+    if (key >= '0' && key <= '9') {
+        mappedValue = key;
+    } else if (key === '.') {
+        mappedValue = key;
+        classList = 'decimal';
+    } 
+    // 2. Map Operators
+    else if (key === '+') {
+        mappedValue = 'add';
+        classList = 'operator';
+    } else if (key === '-') {
+        mappedValue = 'subtract';
+        classList = 'operator';
+    } else if (key === '*' || key === 'x') {
+        mappedValue = 'multiply';
+        classList = 'operator';
+    } else if (key === '/') {
+        mappedValue = 'divide';
+        classList = 'operator';
+    }
+    // 3. Map Control Keys (Enter/Equals, Backspace, Escape/Clear)
+    else if (key === 'Enter' || key === '=') {
+        mappedValue = 'equals';
+        classList = 'operator';
+    } else if (key === 'Backspace') {
+        mappedValue = 'backspace';
+        classList = 'backspace';
+    } else if (key === 'Escape' || key === 'c' || key === 'C') {
+        // 'c' or 'C' for 'Clear' is common in calculators
+        mappedValue = 'clear';
+        classList = 'clear';
+    }
+    
+    // Prevent default actions for calculator keys (like scrolling on space/enter)
+    if (mappedValue) {
+        event.preventDefault();
+        // Use a generic classList if not specifically set, for processing
+        processInput(mappedValue, classList || '');
+    }
+});
+
+// --- CORE INPUT PROCESSING FUNCTION (Called by both click and keydown) ---
+
+function processInput(value, classList) {
+    if (value >= '0' && value <= '9') {
+        handleNumber(value);
+    } else if (classList.includes('operator') || value === 'equals') {
+        handleOperator(value === '=' ? 'equals' : value);
+    } else if (classList.includes('function')) {
+        handleFunction(value);
+    } else if (classList.includes('clear') || value === 'clear') {
+        handleClear();
+    } else if (classList.includes('backspace') || value === 'backspace') {
+        handleBackspace();
+    } else if (classList.includes('decimal') || value === '.') {
+        handleDecimal();
+    } else if (classList.includes('sign-change')) {
+        handleSignChange();
+    }
+    
+    updateDisplay();
+}
+
+// Initialize display
+updateDisplay();
+  
